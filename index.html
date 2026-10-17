@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chance | Fixing How People Meet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden { display: none !important; }
+        body { background-color: #0f172a; }
+        .blur-sm { filter: blur(6px); transition: filter 0.3s; }
+        .blur-sm:hover { filter: blur(2px); }
+        .nav-badge { position: absolute; top: -6px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 0.65rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+        .disclosure-tag { font-size: 0.68rem; color: #94a3b8; background: rgba(30, 41, 59, 0.7); border: 1px dashed #475569; padding: 4px 8px; border-radius: 6px; margin-top: 6px; display: block; }
+        .outcome-card { background: #0f172a; border: 1px solid #334155; border-radius: 0.75rem; padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        
+        /* Toast Animation CSS */
+        @keyframes slideDown {
+            0% { transform: translate(-50%, -100%); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast-animate { animation: slideDown 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="text-gray-200 font-sans min-h-screen relative">
+
+    <!-- GLOBAL TOAST POP-UP -->
+    <div id="toast-notification" class="hidden fixed top-6 left-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl font-medium text-sm text-white"></div>
+
+    <!-- AUTH VIEW -->
+    <div id="auth-view" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-slate-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-slate-700">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-600 text-white mb-3 shadow-lg shadow-indigo-500/30">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h2 class="text-3xl font-bold text-white tracking-wide">Chance</h2>
+                <p class="text-xs text-slate-400 mt-1 italic">"Every connection begins with someone deciding a stranger is worth a message."</p>
+            </div>
+            
+            <div class="flex mb-6 bg-slate-900 rounded-lg p-1">
+                <button id="show-login" class="flex-1 py-2 text-sm font-semibold rounded-md bg-slate-800 text-indigo-400 shadow transition-all" onclick="toggleAuth('login')">Log In</button>
+                <button id="show-signup" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-slate-200 transition-all" onclick="toggleAuth('signup')">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+                <input type="email" id="login-email" placeholder="Email" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                <input type="password" id="login-password" placeholder="Password" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-500 mt-4">Login</button>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signup-form" class="hidden space-y-4" onsubmit="handleSignup(event)">
+                <input type="text" id="signup-name" placeholder="Full Name" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="email" id="signup-email" placeholder="Email" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                    <input type="password" id="signup-password" placeholder="Password (8+ chars)" minlength="8" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <input type="number" id="signup-age" placeholder="Age" min="18" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                    </div>
+                    <div class="col-span-2">
+                        <input type="text" id="signup-city" placeholder="City (e.g., Gandhinagar)" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white font-semibold" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="signup-gender" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                        <option value="" disabled selected>I am a...</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                    <select id="signup-attracted" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white" required>
+                        <option value="" disabled selected>Attracted to...</option>
+                        <option value="Female">Women</option>
+                        <option value="Male">Men</option>
+                        <option value="Both">Both</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Profile Photo</label>
+                    <input type="file" id="signup-photo" accept="image/*" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" required>
+                </div>
+                <div>
+                    <textarea id="signup-bio" placeholder="Write a short bio about yourself..." class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm" rows="2"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Disclosure Style Preference</label>
+                    <select id="signup-disclosure" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white">
+                        <option value="Neutral">Neutral Tone</option>
+                        <option value="Warm">Warm Tone</option>
+                        <option value="Playful">Playful Tone</option>
+                    </select>
+                </div>
+                <button type="submit" id="signup-btn" class="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-500 mt-2">Join Network</button>
+            </form>
+            <p id="auth-msg" class="text-sm mt-4 text-center hidden"></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper" class="hidden min-h-screen flex flex-col">
+        <nav class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-10">
+            <div class="max-w-5xl mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="showDashboard()">
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">C</div>
+                    <h1 class="font-bold text-xl tracking-wide">Chance</h1>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="nav-user-name" class="text-sm text-slate-300 font-semibold hidden sm:inline"></span>
+                    <button onclick="showOutcomes()" class="relative text-xs bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded hover:bg-purple-500/40 border border-purple-500/50 transition">⭐ Check-in</button>
+                    <button onclick="showRequests()" class="relative text-xs bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded hover:bg-emerald-500/40 border border-emerald-500/50 transition">Invites <span id="request-badge" class="nav-badge hidden">0</span></button>
+                    <button onclick="showProfile()" class="text-xs bg-indigo-500/20 text-indigo-300 px-3 py-1.5 rounded hover:bg-indigo-500/40 border border-indigo-500/50">Profile</button>
+                    <button onclick="logout()" class="text-xs border border-red-500 text-red-400 px-3 py-1.5 rounded hover:bg-red-500/10">Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboard-view" class="flex-grow max-w-5xl mx-auto w-full p-4 grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+            <div class="md:col-span-2">
+                <h2 class="text-lg font-semibold mb-1 text-indigo-400">Live Network Feed</h2>
+                <p class="text-xs text-slate-400 mb-4">Anti-burnout active: Photos are blurred until you connect.</p>
+                <div id="feed-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <p class="text-slate-500">Loading feed from server...</p>
+                </div>
+            </div>
+
+            <!-- CHAT -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl flex flex-col h-[600px] sticky top-24 shadow-xl">
+                <div class="p-4 border-b border-slate-700 bg-slate-800/50 rounded-t-xl">
+                    <h3 id="chat-header" class="font-semibold text-white">Private Message Hub</h3>
+                </div>
+                <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-900/50">
+                    <div class="text-center text-slate-500 text-sm mt-10">Send a chat invite to someone to start messaging.</div>
+                </div>
+                <div class="p-3 border-t border-slate-700 bg-slate-800 rounded-b-xl relative">
+                    <div class="flex gap-2">
+                        <input type="text" id="chat-input" disabled onkeyup="if(event.key === 'Enter') sendMessage()" placeholder="Connect to chat..." class="flex-grow p-2 bg-slate-900 border border-slate-600 rounded text-sm text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50">
+                        <button id="send-btn" disabled onclick="sendMessage()" class="bg-indigo-600 px-4 rounded text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 text-white">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROFILE VIEW -->
+        <div id="profile-view" class="hidden flex-grow max-w-xl mx-auto w-full p-4 mt-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl mb-6">
+                <div class="text-center mb-6">
+                    <img id="profile-pic" src="" class="w-24 h-24 rounded-full mx-auto mb-3 border-2 border-indigo-500 object-cover shadow">
+                    <h2 class="text-xl font-bold text-white">Edit Your Profile</h2>
+                </div>
+                <form id="profile-form" onsubmit="handleProfileUpdate(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
+                        <input type="text" id="edit-name" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" required>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="col-span-1">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Age</label>
+                            <input type="number" id="edit-age" min="18" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" required>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-slate-400 mb-1">City</label>
+                            <input type="text" id="edit-city" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Update Profile Picture</label>
+                        <input type="file" id="edit-photo" accept="image/*" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">About Me (Bio)</label>
+                        <textarea id="edit-bio" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" rows="3"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Status</label>
+                        <select id="edit-status" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white">
+                            <option value="Online">🟢 Online</option>
+                            <option value="Busy">🔴 Busy</option>
+                            <option value="Work">🟠 At Work</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Disclosure Tone Preference</label>
+                        <select id="edit-disclosure" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white">
+                            <option value="Neutral">Neutral Tone</option>
+                            <option value="Warm">Warm Tone</option>
+                            <option value="Playful">Playful Tone</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="profile-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded font-medium text-sm transition">Save Profile Changes</button>
+                </form>
+
+                <!-- Change Password Section -->
+                <hr class="border-slate-700 my-6">
+                <h3 class="text-lg font-bold text-white mb-4">Security</h3>
+                <form id="password-form" onsubmit="handleChangePassword(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Current Password</label>
+                        <input type="password" id="old-password" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">New Password (8+ chars)</label>
+                        <input type="password" id="new-password" minlength="8" class="w-full p-2 bg-slate-900 border border-slate-700 rounded text-sm text-white" required>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded font-medium text-sm transition">Update Password</button>
+                </form>
+
+                <!-- Blocked Profiles Section -->
+                <hr class="border-slate-700 my-6">
+                <h3 class="text-lg font-bold text-white mb-4">Blocked Profiles</h3>
+                <div id="blocked-content" class="space-y-3">
+                    <p class="text-xs text-slate-500">You haven't blocked anyone.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- REQUESTS VIEW -->
+        <div id="requests-view" class="hidden flex-grow max-w-3xl mx-auto w-full p-4 mt-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                <h2 class="text-xl font-bold text-white mb-4">Chat Invites & Connections</h2>
+                <div id="requests-content" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- SUCCESS OUTCOMES VIEW -->
+        <div id="outcomes-view" class="hidden flex-grow max-w-3xl mx-auto w-full p-4 mt-6">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                <h2 class="text-xl font-bold text-white mb-1">⭐ Relationship Success & Wellbeing Check-in</h2>
+                <p class="text-xs text-slate-400 mb-6">Report how our tools helped you in under 10 seconds.</p>
+                <div id="outcomes-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = JSON.parse(sessionStorage.getItem("chance_user"));
+        let currentChatTarget = null;
+        let chatInterval = null;
+        let feedInterval = null;
+        let userConnections = [];
+        let incomingRequests = [];
+        let allUsers = [];
+        let blockedUsers = [];
+        let toastTimeout = null;
+
+        window.onload = () => { if(currentUser) showApp(); };
+
+        function showPopUp(message, isError = false) {
+            const popup = document.getElementById('toast-notification');
+            popup.textContent = message;
+            popup.className = `fixed top-6 left-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl font-medium text-sm text-white toast-animate ${isError ? 'bg-red-500 shadow-red-500/30' : 'bg-emerald-500 shadow-emerald-500/30'}`;
+            popup.classList.remove('hidden');
+
+            if(toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                popup.classList.add('hidden');
+                popup.classList.remove('toast-animate');
+            }, 3000);
+        }
+
+        function toggleAuth(type) {
+            document.getElementById('auth-msg').classList.add('hidden');
+            const loginBtn = document.getElementById('show-login');
+            const signupBtn = document.getElementById('show-signup');
+
+            if(type === 'login') {
+                document.getElementById('signup-form').classList.add('hidden');
+                document.getElementById('login-form').classList.remove('hidden');
+                loginBtn.className = "flex-1 py-2 text-sm font-semibold rounded-md bg-slate-800 text-indigo-400 shadow transition-all";
+                signupBtn.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-slate-200 transition-all";
+            } else {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('signup-form').classList.remove('hidden');
+                signupBtn.className = "flex-1 py-2 text-sm font-semibold rounded-md bg-slate-800 text-indigo-400 shadow transition-all";
+                loginBtn.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-400 hover:text-slate-200 transition-all";
+            }
+        }
+
+        function showMessage(text, isError) {
+            const msg = document.getElementById('auth-msg');
+            msg.textContent = text;
+            msg.className = `text-sm mt-4 text-center block ${isError ? 'text-red-400' : 'text-green-400'}`;
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const btn = document.getElementById('signup-btn');
+            btn.textContent = "Uploading...";
+            btn.disabled = true;
+
+            try {
+                // 1. Upload the photo first
+                const photoFile = document.getElementById('signup-photo').files[0];
+                const formData = new FormData();
+                formData.append("file", photoFile);
+                
+                const uploadRes = await fetch('/api/upload-photo', { method: 'POST', body: formData });
+                const uploadData = await uploadRes.json();
+
+                // 2. Create the user
+                const payload = {
+                    name: document.getElementById('signup-name').value,
+                    email: document.getElementById('signup-email').value.trim().toLowerCase(),
+                    password: document.getElementById('signup-password').value,
+                    age: parseInt(document.getElementById('signup-age').value),
+                    city: document.getElementById('signup-city').value,
+                    gender: document.getElementById('signup-gender').value,
+                    attractedTo: document.getElementById('signup-attracted').value,
+                    bio: document.getElementById('signup-bio').value,
+                    disclosureTone: document.getElementById('signup-disclosure').value,
+                    photo: uploadData.url 
+                };
+                
+                const res = await fetch('/api/signup', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                if(!res.ok) {
+                    btn.textContent = "Join Network"; btn.disabled = false;
+                    const errorText = Array.isArray(data.detail) ? data.detail[0].msg : (data.detail || "Error signing up.");
+                    return showMessage(errorText, true);
+                }
+                
+                sessionStorage.setItem("chance_user", JSON.stringify(data));
+                currentUser = data;
+                showApp();
+                showPopUp("Welcome to Chance! Account created. 🎉");
+            } catch (error) {
+                btn.textContent = "Join Network"; btn.disabled = false;
+                showMessage("Photo upload failed. Try again.", true);
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const payload = { 
+                email: document.getElementById('login-email').value.trim().toLowerCase(), 
+                password: document.getElementById('login-password').value 
+            };
+            const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            
+            if(!res.ok) {
+                const errorText = Array.isArray(data.detail) ? data.detail[0].msg : (data.detail || "Error logging in.");
+                return showMessage(errorText, true);
+            }
+            
+            sessionStorage.setItem("chance_user", JSON.stringify(data));
+            currentUser = data;
+            showApp();
+        }
+
+        function logout() { sessionStorage.removeItem("chance_user"); location.reload(); }
+
+        function showApp() {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-wrapper').classList.remove('hidden');
+            document.getElementById('nav-user-name').textContent = currentUser.name;
+            showDashboard();
+        }
+
+        function hideAllViews() {
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById('requests-view').classList.add('hidden');
+            document.getElementById('outcomes-view').classList.add('hidden');
+            if(feedInterval) { clearInterval(feedInterval); feedInterval = null; }
+            if(chatInterval) { clearInterval(chatInterval); chatInterval = null; }
+        }
+
+        function showDashboard() { hideAllViews(); document.getElementById('dashboard-view').classList.remove('hidden'); loadFeed(); feedInterval = setInterval(loadFeed, 5000); }
+        
+        function showProfile() {
+            hideAllViews();
+            document.getElementById('profile-view').classList.remove('hidden');
+            document.getElementById('profile-pic').src = currentUser.photo;
+            document.getElementById('edit-name').value = currentUser.name;
+            document.getElementById('edit-age').value = currentUser.age || 18;
+            document.getElementById('edit-city').value = currentUser.city;
+            document.getElementById('edit-bio').value = currentUser.bio || '';
+            document.getElementById('edit-status').value = currentUser.status;
+            document.getElementById('edit-disclosure').value = currentUser.disclosureTone || 'Neutral';
+            document.getElementById('edit-photo').value = '';
+            
+            renderBlockedUsers();
+        }
+
+        function showRequests() { hideAllViews(); document.getElementById('requests-view').classList.remove('hidden'); renderRequests(); }
+        function showOutcomes() { hideAllViews(); document.getElementById('outcomes-view').classList.remove('hidden'); renderOutcomes(); }
+
+        function renderOutcomes() {
+            const outcomes = [
+                { title: "🛡️ Safer First Meetup", desc: "Met safely with verified context." },
+                { title: "💬 Clearer Conversation", desc: "Avoided miscommunication using clear messages." },
+                { title: "🍃 Kinder Ending / Soft Close", desc: "Parted ways respectfully without ghosting." },
+                { title: "🔋 Reduced Swiping Burnout", desc: "Took mindful breaks instead of endless scrolling." }
+            ];
+
+            const container = document.getElementById('outcomes-list');
+            container.innerHTML = outcomes.map(o => `
+                <div class="outcome-card">
+                    <div>
+                        <h4 class="font-semibold text-white text-sm">${o.title}</h4>
+                        <p class="text-xs text-slate-400">${o.desc}</p>
+                    </div>
+                    <button onclick="reportOutcome('${o.title}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition cursor-pointer">Report Success (1-tap)</button>
+                </div>
+            `).join('');
+        }
+
+        async function reportOutcome(title) {
+            const res = await fetch('/api/log-outcome', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ userId: currentUser.id, outcomeType: title })
+            });
+            const data = await res.json();
+            showPopUp(res.ok ? data.message : (data.detail || "Error logging milestone"), !res.ok);
+        }
+
+        async function fetchRelationshipData() {
+            const [connRes, pendingRes, blockedRes] = await Promise.all([
+                fetch(`/api/connections/${currentUser.id}`),
+                fetch(`/api/pending-requests/${currentUser.id}`),
+                fetch(`/api/blocked/${currentUser.id}`)
+            ]);
+            
+            userConnections = (await connRes.json()).connections || [];
+            
+            const pending = await pendingRes.json();
+            incomingRequests = pending.incoming || [];
+            
+            const blockedData = await blockedRes.json();
+            blockedUsers = blockedData.blocked || [];
+
+            const badge = document.getElementById('request-badge');
+            if (incomingRequests.length > 0) { badge.textContent = incomingRequests.length; badge.classList.remove('hidden'); }
+            else { badge.classList.add('hidden'); }
+        }
+
+        async function loadFeed() {
+            await fetchRelationshipData();
+            const res = await fetch('/api/users');
+            allUsers = await res.json();
+            const container = document.getElementById('feed-container');
+
+            let matches = allUsers.filter(p => {
+                if (p.id === currentUser.id) return false;
+                if (userConnections.includes(p.id)) return true;
+                if (blockedUsers.includes(p.id)) return false; 
+                
+                const iLikeThem = currentUser.attractedTo === "Both" || p.gender === currentUser.attractedTo;
+                const theyLikeMe = p.attractedTo === "Both" || p.attractedTo === currentUser.gender;
+                return iLikeThem && theyLikeMe;
+            });
+
+            if (matches.length === 0) {
+                container.innerHTML = '<p class="col-span-2 text-slate-400 bg-slate-800 p-4 rounded text-center">No profiles found.</p>';
+                return;
+            }
+
+            let html = '';
+            matches.forEach(profile => {
+                const isConnected = userConnections.includes(profile.id);
+                const blurClass = isConnected ? '' : 'blur-sm';
+                let actionBtn = isConnected ? 
+                    `<button onclick="openChat(${profile.id})" class="w-full bg-slate-700 text-white py-2 rounded-lg font-medium hover:bg-slate-600 transition">💬 Open Chat</button>` :
+                    `<button onclick="sendInvite(${profile.id})" class="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-500 transition">💌 Send Invite</button>`;
+
+                let buttonsHtml = `
+                    <div class="flex gap-2 mt-3">
+                        <div class="flex-grow">${actionBtn}</div>
+                        <button onclick="blockUser(${profile.id})" class="bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-2 rounded-lg font-medium hover:bg-red-500/40 transition" title="Block Profile">🚫</button>
+                    </div>
+                `;
+
+                let disclosureText = "";
+                const tone = currentUser.disclosureTone || 'Neutral';
+                if (tone === 'Warm') disclosureText = `✨ Paired with ${profile.name} because your location and dating intent clicked nicely!`;
+                else if (tone === 'Playful') disclosureText = `🎯 Our radar did a little heavy lifting to pair you with ${profile.name}!`;
+                else disclosureText = `💡 Suggested based on shared location (${profile.city}) and preferences.`;
+                
+                const bioHtml = profile.bio ? `<p class="text-xs text-slate-300 mt-2 italic">"${profile.bio}"</p>` : '';
+
+                html += `
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-lg flex flex-col">
+                        <div class="relative">
+                            <img src="${profile.photo}" class="w-full h-48 object-cover ${blurClass}">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg text-white">${profile.name} <span class="text-sm font-normal text-slate-400">(${profile.age || 18})</span></h3>
+                            ${bioHtml}
+                            <span class="disclosure-tag mt-3">${disclosureText}</span>
+                            ${buttonsHtml}
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function sendInvite(receiverId) {
+            const res = await fetch('/api/send-request', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ senderId: currentUser.id, receiverId }) });
+            if (res.ok) {
+                showPopUp("Invite sent successfully! 💌");
+            }
+            loadFeed();
+        }
+
+        async function renderRequests() {
+            await fetchRelationshipData();
+            const container = document.getElementById('requests-content');
+            if (incomingRequests.length === 0) { container.innerHTML = '<p class="text-slate-400">No incoming requests.</p>'; return; }
+            
+            container.innerHTML = incomingRequests.map(req => {
+                const sender = allUsers.find(u => u.id === req.senderId) || {name: 'User'};
+                return `
+                <div class="req-card flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700 mb-2">
+                    <span class="text-sm text-white">${sender.name} wants to connect.</span>
+                    <div class="flex gap-2">
+                        <button onclick="acceptReq(${req.senderId})" class="bg-emerald-600 px-3 py-1 rounded text-white text-xs hover:bg-emerald-500 transition">Accept</button>
+                        <button onclick="declineReq(${req.senderId})" class="bg-red-500 px-3 py-1 rounded text-white text-xs hover:bg-red-400 transition">Decline</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function acceptReq(senderId) {
+            const res = await fetch('/api/accept-request', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ senderId, receiverId: currentUser.id }) });
+            if (res.ok) showPopUp("Invite accepted! You are now connected. ✨");
+            renderRequests();
+        }
+
+        async function declineReq(senderId) {
+            const res = await fetch('/api/reject-request', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ senderId, receiverId: currentUser.id }) });
+            if (res.ok) showPopUp("Invite politely declined. 🚫", true);
+            renderRequests();
+        }
+
+        async function blockUser(targetId) {
+            if (!confirm("Are you sure you want to block this profile? They will be removed from your feed.")) return;
+            const res = await fetch('/api/block', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ blockerId: currentUser.id, blockedId: targetId }) });
+            if (res.ok) {
+                showPopUp("Profile blocked successfully. 🚫");
+                loadFeed();
+            }
+        }
+
+        async function renderBlockedUsers() {
+            await fetchRelationshipData();
+            const container = document.getElementById('blocked-content');
+            
+            if (blockedUsers.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-500">You haven\'t blocked anyone.</p>';
+                return;
+            }
+            
+            if(allUsers.length === 0) {
+                const res = await fetch('/api/users');
+                allUsers = await res.json();
+            }
+
+            container.innerHTML = blockedUsers.map(id => {
+                const bUser = allUsers.find(u => u.id === id) || {name: 'Unknown User'};
+                return `
+                <div class="flex justify-between items-center bg-slate-900 p-3 rounded-lg border border-slate-700 mb-2">
+                    <span class="text-sm text-white">${bUser.name}</span>
+                    <button onclick="unblockUser(${id})" class="bg-slate-700 px-3 py-1 rounded text-white text-xs hover:bg-slate-600 transition">Unblock</button>
+                </div>`;
+            }).join('');
+        }
+
+        async function unblockUser(targetId) {
+            const res = await fetch('/api/unblock', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ blockerId: currentUser.id, blockedId: targetId }) });
+            if (res.ok) {
+                showPopUp("Profile unblocked. ✅");
+                renderBlockedUsers();
+            }
+        }
+
+        function openChat(targetId) {
+            currentChatTarget = targetId;
+            const targetUser = allUsers.find(u => u.id === targetId);
+            
+            document.getElementById('chat-header').textContent = 'Private message with ' + (targetUser ? targetUser.name : 'Connection');
+            document.getElementById('chat-input').disabled = false;
+            document.getElementById('send-btn').disabled = false;
+            fetchMessages();
+            
+            if(chatInterval) clearInterval(chatInterval);
+            chatInterval = setInterval(fetchMessages, 2000);
+        }
+
+        async function fetchMessages() {
+            if(!currentChatTarget) return;
+            const res = await fetch(`/api/messages/${currentUser.id}/${currentChatTarget}`);
+            const msgs = await res.json();
+            const chatBox = document.getElementById('chat-messages');
+            
+            chatBox.innerHTML = msgs.map(m => {
+                const isMine = m.senderId === currentUser.id;
+                if (isMine) {
+                    return `<div class="text-right"><div class="inline-block bg-indigo-600 text-white p-3 rounded-l-xl rounded-tr-xl text-sm max-w-[80%] text-left"><p>${m.text}</p></div></div>`;
+                } else {
+                    return `<div class="text-left"><div class="inline-block bg-slate-700 text-white p-3 rounded-r-xl rounded-tl-xl text-sm max-w-[80%]"><p>${m.text}</p></div></div>`;
+                }
+            }).join('') || '<p class="text-slate-500 text-center">No messages yet.</p>';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            const tone = "Standard";
+            if(!text) return;
+            await fetch('/api/messages', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ senderId: currentUser.id, receiverId: currentChatTarget, text, tone }) });
+            input.value = '';
+            fetchMessages();
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            const btn = document.getElementById('profile-btn');
+            btn.textContent = "Saving...";
+            
+            try {
+                let updatedPhotoUrl = currentUser.photo;
+                const photoFile = document.getElementById('edit-photo').files[0];
+                
+                if (photoFile) {
+                    const formData = new FormData();
+                    formData.append("file", photoFile);
+                    const uploadRes = await fetch('/api/upload-photo', { method: 'POST', body: formData });
+                    const uploadData = await uploadRes.json();
+                    updatedPhotoUrl = uploadData.url;
+                }
+
+                const payload = {
+                    id: currentUser.id,
+                    name: document.getElementById('edit-name').value,
+                    age: parseInt(document.getElementById('edit-age').value),
+                    city: document.getElementById('edit-city').value,
+                    status: document.getElementById('edit-status').value,
+                    attractedTo: currentUser.attractedTo,
+                    bio: document.getElementById('edit-bio').value,
+                    disclosureTone: document.getElementById('edit-disclosure').value,
+                    photo: updatedPhotoUrl
+                };
+                
+                const res = await fetch('/api/update-profile', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                if(res.ok) {
+                    currentUser = data;
+                    sessionStorage.setItem("chance_user", JSON.stringify(data));
+                    document.getElementById('profile-pic').src = currentUser.photo;
+                    showPopUp("Profile updated successfully! 👤");
+                } else {
+                    showPopUp("Failed to update profile.", true);
+                }
+            } catch (err) {
+                showPopUp("Error uploading new photo.", true);
+            }
+            btn.textContent = "Save Profile Changes";
+        }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const oldPassword = document.getElementById('old-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            
+            const payload = { id: currentUser.id, oldPassword: oldPassword, newPassword: newPassword };
+            
+            const res = await fetch('/api/change-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            
+            if(res.ok) {
+                showPopUp("Password changed successfully! 🔒");
+                document.getElementById('old-password').value = '';
+                document.getElementById('new-password').value = '';
+            } else {
+                showPopUp(data.detail || "Failed to change password.", true);
+            }
+        }
+    </script>
+</body>
+</html>
